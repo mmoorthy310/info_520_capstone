@@ -140,9 +140,8 @@ def format_mcp_res(req_id, res):
 def format_mcp_err(req_id, code, msg):
     return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": msg}}
 
-async def stream_sse(data):
-    yield f"data: {json.dumps(data)}\n\n"
-    await asyncio.sleep(0)
+# no longer using stream_sse since Vertex AI expects standard JSON
+
 
 # security check for cloud run
 EXPECTED_AUDIENCE = os.environ.get("MCP_SERVICE_AUDIENCE", "")
@@ -301,12 +300,12 @@ async def handle_mcp(req: Request):
             "capabilities": {"tools": {}},
             "serverInfo": {"name": "acc-mcp-server", "version": "1.0.0"},
         })
-        return StreamingResponse(stream_sse(res), media_type="text/event-stream")
+        return res
         
     if method == "tools/list":
         tool_list = [{"name": n, **info} for n, info in TOOLS.items()]
         res = format_mcp_res(req_id, {"tools": tool_list})
-        return StreamingResponse(stream_sse(res), media_type="text/event-stream")
+        return res
         
     if method == "tools/call":
         name = params.get("name")
@@ -318,16 +317,16 @@ async def handle_mcp(req: Request):
             data = sync_pipeline_tool(args)
         else:
             err = format_mcp_err(req_id, -32601, f"tool not found: {name}")
-            return StreamingResponse(stream_sse(err), media_type="text/event-stream")
+            return err
             
         res = format_mcp_res(req_id, {
             "content": [{"type": "text", "text": json.dumps(data, indent=2)}],
             "isError": False,
         })
-        return StreamingResponse(stream_sse(res), media_type="text/event-stream")
+        return res
 
     err = format_mcp_err(req_id, -32601, "method not found")
-    return StreamingResponse(stream_sse(err), media_type="text/event-stream")
+    return err
 
 @app.get("/health")
 async def health_check():
