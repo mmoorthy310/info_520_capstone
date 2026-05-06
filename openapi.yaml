@@ -1,0 +1,88 @@
+openapi: 3.0.0
+info:
+  title: ACC MCP Tools
+  version: 1.0.0
+servers:
+  - url: https://acc-mcp-server-579866639811.us-east1.run.app
+paths:
+  /mcp:
+    post:
+      operationId: call_mcp_tool
+      summary: Call an MCP tool (fetch_jobs or sync_pipeline)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                jsonrpc:
+                  type: string
+                  default: "2.0"
+                id:
+                  type: string
+                  default: "vertex-ai-req"
+                method:
+                  type: string
+                  enum: ["tools/call"]
+                  default: "tools/call"
+                params:
+                  type: object
+                  required:
+                    - name
+                    - arguments
+                  properties:
+                    name:
+                      type: string
+                      enum: ["fetch_jobs", "sync_pipeline"]
+                      description: "MUST be exactly 'fetch_jobs' or 'sync_pipeline'"
+                    arguments:
+                      type: object
+                      properties:
+                        operation:
+                          type: string
+                          description: "MUST be one of: list, create, update, delete"
+                        job_id:
+                          type: string
+                        status:
+                          type: string
+                          description: "Status of the job pipeline, e.g. saved, applied"
+                        company:
+                          type: string
+                          description: "The name of the company"
+                        title:
+                          type: string
+                          description: "The title of the job"
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jsonrpc:
+                    type: string
+                  id:
+                    type: string
+                  result:
+                    type: object
+                    properties:
+                      content:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            type:
+                              type: string
+                            text:
+                              type: string
+                      isError:
+                        type: boolean
+                  error:
+                    type: object
+                    properties:
+                      code:
+                        type: integer
+                      message:
+                        type: string
